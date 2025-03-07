@@ -1,6 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router'
-import baseUrl from '../api/baseUrl'
-import Toastify  from 'toastify-js'
+import Toastify from 'toastify-js'
 
 export default function Navbar() {
     const navigate = useNavigate()
@@ -11,39 +10,59 @@ export default function Navbar() {
         localStorage.removeItem('access_token')
         Toastify({
             text: "Logged out successfully",
-            duration: 5000,
-            newWindow: true,
+            duration: 3000,
             close: true,
             gravity: "bottom",
-        }).showToast();
+            position: "right",
+            style: {
+                background: "#A3B18A", // Warna hijau natural
+                color: "#fff",
+                borderRadius: "8px",
+                boxShadow: "0px 5px 15px rgba(0, 0, 0, 0.1)",
+                fontWeight: "500",
+                padding: "10px 20px",
+            }
+        }).showToast()
         navigate('/login')
     }
 
     return (
-        <nav className="bg-white shadow-lg sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16">
-                    <div className="flex items-center">
-                        <Link to="/" className="flex-shrink-0 flex items-center">
-                            <span className="text-2xl font-bold text-blue-600">NewsApp</span>
-                        </Link>
-                    </div>
+        <nav className="fixed z-10 top-0 w-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="container mx-auto px-6">
+                <div className="flex justify-between items-center h-14">
+                    {/* Logo */}
+                    <Link to="/" className="text-lg font-bold text-gray-800 dark:text-gray-200">
+                        NewsApp
+                    </Link>
 
-                    <div className="flex items-center space-x-4">
-                        <Link to="/" className={`px-3 py-2 rounded-md text-sm font-medium`}>
+                    {/* Menu */}
+                    <div className="flex items-center space-x-6">
+                        <Link 
+                            to="/" 
+                            className={`text-gray-700 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition ${location.pathname === '/' ? 'font-bold' : ''}`}
+                        >
                             Home
                         </Link>
+
+
                         {isLoggedIn ? (
                             <>
                                 <Link 
+                                    to="/myFavorite" 
+                                    className={`text-gray-700 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition ${location.pathname === '/profile' ? 'font-bold' : ''}`}
+                                >
+                                    my favorite
+                                </Link>
+                                <Link 
                                     to="/profile" 
-                                    className={`px-3 py-2 rounded-md text-sm font-medium`}
+                                    className={`text-gray-700 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition ${location.pathname === '/profile' ? 'font-bold' : ''}`}
                                 >
                                     Profile
                                 </Link>
+
                                 <button
                                     onClick={handleLogout}
-                                    className="px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:text-red-800"
+                                    className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition"
                                 >
                                     Logout
                                 </button>
@@ -52,13 +71,14 @@ export default function Navbar() {
                             <>
                                 <Link 
                                     to="/login" 
-                                    className={`px-3 py-2 rounded-md text-sm font-medium`}
+                                    className={`text-gray-700 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition ${location.pathname === '/login' ? 'font-bold' : ''}`}
                                 >
                                     Login
                                 </Link>
+
                                 <Link 
                                     to="/register" 
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+                                    className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition"
                                 >
                                     Register
                                 </Link>

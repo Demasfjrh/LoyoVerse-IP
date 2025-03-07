@@ -1,7 +1,7 @@
 const { User } = require('../models');
 const { comparePassword } = require('../helpers/bcrypt');
 const { createToken } = require('../helpers/jwt');
-const cloudinary = require('../middleware/cloudinary');
+const cloudinary = require('../helpers/cloudinary');
 const { OAuth2Client } = require('google-auth-library');
 
 class UserController {
@@ -79,6 +79,7 @@ class UserController {
 
       const access_token = createToken({
         id: user.id,
+        email: user.email,
         UserName: user.UserName,
       });
 
@@ -90,21 +91,45 @@ class UserController {
   }
 
   static async getProfile(req, res, next) {
-    console.log('masukkk');
     try {
-      console.log(req.loginInfo, '<<<<<<<<<<<<< ini login info');
-      const { userId } = req.loginInfo;
 
-      if (!userId) {
-        throw { name: 'Unauthorized' };
+      // console.log('masuk sini <<<');
+      
+      const { userId } = req.loginInfo
+
+      // Find user in database
+      const user = await User.findByPk(userId)
+
+      // console.log(user,'<<<<<');
+      
+
+      if (!user) {
+          throw {name: 'NotFound'}
       }
-      const user = await User.findByPk(userId);
 
-      res.status(200).json(user);
-    } catch (error) {
-      next(error);
+      res.status(200).json(user)
+  } catch (error) {
+    next(error)
     }
   }
+
+  // static async updateProfile(req, res, next) {
+  //   try {
+  //     const userId = req.user.id
+  //     const { username, email } = req.body  
+
+  //     const user = await User.findByPk(userId)
+
+  //     if (!user) throw { name: 'NotFound' }
+
+  //     await User.update({ username, email }, { where: { id: userId } })
+      
+  //     res.status(200).json({ message: 'Profile updated successfully' })
+  //   } catch (error) {
+  //     next(error)
+  //   }
+  // }
+  
 
   static async uploadImage(req, res, next) {
     try {
@@ -113,7 +138,7 @@ class UserController {
 
       if (!user) throw { name: 'NotFound' };
 
-      console.log('req.file:', req.file);
+      // console.log('req.file:', req.file);
 
       const imageInBase64 = req.file.buffer.toString('base64');
       const base64Data = `data:${req.file.mimetype};base64,${imageInBase64}`;
@@ -123,7 +148,7 @@ class UserController {
         tags: ['profile'],
       });
 
-      console.log(upload, '<<<<<<<<<<<<< ini upload');
+      // console.log(upload, '<<<<<<<<<<<<< ini upload');
 
       await User.update(
         {

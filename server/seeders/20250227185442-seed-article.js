@@ -12,18 +12,7 @@ module.exports = {
      *   isBetaMember: false
      * }], {});
     */
-    const data = [
-      {
-        title: 'Article 1',
-        imgUrl: 'https://via.placeholder.com/150',
-        description: 'Description 1'
-      },
-      {
-        title: 'Article 2',
-        imgUrl: 'https://via.placeholder.com/150',
-        description: 'Description 2'
-      }
-    ]
+    const data = require('../data/article.json')
     data.forEach(async (article) => {
       article.createdAt = new Date();
       article.updatedAt = new Date();

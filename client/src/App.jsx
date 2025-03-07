@@ -5,12 +5,13 @@ import RegisterPage from './views/RegisterPage'
 import ProfilePage from './views/ProfilePage'
 import NewsDetailPage from './views/NewsDetailPage'
 import BaseLayout from './views/BaseLayout'
+import EditPPPage from './views/EditPPPage'
+import FavoritePage from './views/FavoritePage'
 
 
 function App() {
 
   return (
-    <>
       <BrowserRouter>
         <Routes>
           <Route element={<BaseLayout/>}>
@@ -18,11 +19,12 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/news/:id" element={<NewsDetailPage />} />
+            <Route path="/editProfile" element={<EditPPPage />} />
+            <Route path="/article/:id" element={<NewsDetailPage />} />
+            <Route path="/myFavorite" element={<FavoritePage />} />
           </Route>
         </Routes>
       </BrowserRouter>
-    </>
   )
 }
 

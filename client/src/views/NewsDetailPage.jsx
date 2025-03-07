@@ -1,145 +1,210 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import Toastify from "toastify-js";
+import { useEffect, useState, useRef } from 'react';
+import axios from 'axios';
+import { useParams, useNavigate } from 'react-router';
+import Toastify from 'toastify-js';
+import baseUrl from '../api/baseUrl';
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-export default function NewsDetailPage() {
+export default function ArticleDetail() {
   const { id } = useParams();
+  const [article, setArticle] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const navigate = useNavigate();
-  const [news, setNews] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const speechSynthesisRef = useRef(null);
 
   useEffect(() => {
-    fetchNewsDetail();
-    checkIfFavorite();
+    fetchArticle();
+    checkIfFavorited();
   }, [id]);
 
-  const fetchNewsDetail = async () => {
+  const fetchArticle = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/article/${id}`);
-      setNews(data);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching news detail:", error);
-      if (error.response?.status === 404) {
-        navigate("/404");
-      }
-      setLoading(false);
-    }
-  };
-
-  const checkIfFavorite = async () => {
-    try {
-      const access_token = localStorage.getItem("access_token");
-      if (!access_token) return;
-
-      const { data } = await axios.get(`${API_URL}/favorites`, {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
+      setLoading(true);
+      const token = localStorage.getItem('access_token');
+      const { data } = await axios.get(`${baseUrl}/article/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setIsFavorite(data.some((fav) => fav.ArticleId === parseInt(id)));
+      setArticle(data);
     } catch (error) {
-      console.error("Error checking favorite status:", error);
+      Toastify({
+        text: "error loading article",
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "bottom", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+            background:'linear-gradient(90deg, rgba(255,207,0,1) 0%, rgba(255,0,0,1) 68%)',
+            color:'white'
+        },
+    }).showToast();
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleFavorite = async () => {
+  const checkIfFavorited = async () => {
     try {
-      const access_token = localStorage.getItem("access_token");
-      if (!access_token) {
-        Toastify.error("Please login to add favorites");
-        navigate("/login");
+      const token = localStorage.getItem('access_token');
+      const { data } = await axios.get(`${baseUrl}/favorites`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const isAlreadyFavorite = data.some(fav => fav.ArticleId === Number(id));
+      setIsFavorited(isAlreadyFavorite);
+    } catch (error) {
+      console.error('Error checking favorites', error);
+    }
+  };
+
+  const handleAddToFavorite = async () => {
+    if (!article || isFavorited) return;
+    try {
+      const token = localStorage.getItem('access_token');
+      await axios.post(
+        `${baseUrl}/favorites`,
+        { ArticleId: article.id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      Toastify({
+        text: "success add to favorite",
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "bottom", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+            background: "linear-gradient(to right, #00b09b, #96c93d)",
+        },
+    }).showToast();
+      setIsFavorited(true);
+    } catch (error) {
+      if (error.response && error.response.data.name === 'AlreadyFavorite') {
+        Toastify({
+          text: "Article alredy in favorite",
+          duration: 3000,
+          newWindow: true,
+          close: true,
+          gravity: "bottom", // `top` or `bottom`
+          position: "right", // `left`, `center` or `right`
+          stopOnFocus: true, // Prevents dismissing of toast on hover
+          style: {
+              background:'linear-gradient(90deg, rgba(255,207,0,1) 0%, rgba(255,0,0,1) 68%)',
+              color:'white'
+          },
+      }).showToast();
+        setIsFavorited(true);
+      } else {
+        Toastify({
+          text: "Failed to add to Favorite",
+          duration: 3000,
+          newWindow: true,
+          close: true,
+          gravity: "bottom", // `top` or `bottom`
+          position: "right", // `left`, `center` or `right`
+          stopOnFocus: true, // Prevents dismissing of toast on hover
+          style: {
+              background:'linear-gradient(90deg, rgba(255,207,0,1) 0%, rgba(255,0,0,1) 68%)',
+              color:'white'
+          },
+      }).showToast();
+      }
+    }
+  };
+
+  const handleTextToSpeech = () => {
+    // Cek apakah browser mendukung Web Speech API
+    if ('speechSynthesis' in window) {
+      const synth = window.speechSynthesis;
+
+      // Jika sedang berbicara, hentikan
+      if (isSpeaking) {
+        synth.cancel();
+        setIsSpeaking(false);
         return;
       }
 
-      if (isFavorite) {
-        // Find the favorite id first
-        const { data } = await axios.get(`${API_URL}/favorites`, {
-          headers: { Authorization: `Bearer ${access_token}` },
-        });
-        const favorite = data.find((fav) => fav.ArticleId === parseInt(id));
-        
-        if (favorite) {
-          await axios.delete(`${API_URL}/favorites/${favorite.id}`, {
-            headers: { Authorization: `Bearer ${access_token}` },
-          });
-          Toastify.success("Removed from favorites");
-          setIsFavorite(false);
-        }
-      } else {
-        await axios.post(
-          `${API_URL}/favorites`, 
-          { ArticleId: id },
-          { headers: { Authorization: `Bearer ${access_token}` } }
-        );
-        Toastify.success("Added to favorites");
-        setIsFavorite(true);
-      }
-    } catch (error) {
-      console.error("Error updating favorite:", error);
-      Toastify.error(error.response?.data?.message || "Failed to update favorites");
+      // Gabungkan judul dan deskripsi artikel
+      const textToSpeak = `${article.title}. ${article.description}`;
+
+      // Buat objek utterance
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      
+      // Pilih bahasa sesuai kebutuhan (misalnya Indonesia)
+      utterance.lang = 'id-ID'; // Bahasa Indonesia
+      
+      // Event listener untuk status berbicara
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+
+      // Simpan referensi untuk keperluan pembatalan
+      speechSynthesisRef.current = utterance;
+
+      // Mulai berbicara
+      synth.speak(utterance);
+    } else {
+      Toastify({
+        text: "Text-To-Speach didn't allowed in your browser",
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "bottom", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+            background: "linear-gradient(to right, #00b09b, #96c93d)",
+        },
+    }).showToast();
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (!news) return null;
+  if (loading) return <p>Loading...</p>;
+  if (!article) return <p>Article not found</p>;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <article className="max-w-4xl mx-auto">
-        <div className="relative">
-          <img
-            src={news.imageUrl}
-            alt={news.title}
-            className="w-full h-[400px] object-cover rounded-lg shadow-lg mb-8"
-          />
-          <button
-            onClick={handleFavorite}
-            className={`absolute top-4 right-4 p-3 rounded-full ${
-              isFavorite 
-                ? 'bg-red-500 text-white' 
-                : 'bg-white text-gray-700'
-            } shadow-lg hover:transform hover:scale-105 transition-all`}
-          >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              className="h-6 w-6" 
-              fill={isFavorite ? "currentColor" : "none"}
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
+    <div className="min-h-screen p-6 bg-gray-900 text-gray-200 flex justify-center items-center">
+      <div className="max-w-4xl w-full bg-gray-800 shadow-lg rounded-xl overflow-hidden flex flex-col md:flex-row">
+        {article.imgUrl && (
+          <div className="w-full md:w-1/2">
+            <img src={article.imgUrl} alt={article.title} className="w-full h-64 md:h-full object-cover" />
+          </div>
+        )}
+        <div className="p-6 flex flex-col justify-center w-full md:w-1/2">
+          <h1 className="text-3xl font-bold mb-4 text-green-300">{article.title}</h1>
+          <p className="text-gray-400 mb-4">{article.description}</p>
+          
+          <div className="flex space-x-4">
+            <button
+              onClick={handleAddToFavorite}
+              disabled={isFavorited}
+              className={`
+                ${isFavorited 
+                  ? 'bg-gray-500 cursor-not-allowed' 
+                  : 'bg-green-600 hover:bg-green-500'
+                } 
+                text-white font-semibold py-2 px-4 rounded-lg transition
+              `}
             >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
-              />
-            </svg>
-          </button>
+              {isFavorited ? '✅ Sudah di Favorit' : '🌿 Tambah ke Favorit'}
+            </button>
+
+            <button
+              onClick={handleTextToSpeech}
+              className={`
+                ${isSpeaking 
+                  ? 'bg-red-500 hover:bg-red-400' 
+                  : 'bg-blue-600 hover:bg-blue-500'
+                }
+                text-white font-semibold py-2 px-4 rounded-lg transition
+              `}
+            >
+              {isSpeaking ? '🔇 Hentikan' : '🔊 Baca Artikel'}
+            </button>
+          </div>
         </div>
-        <h1 className="text-4xl font-bold mb-4">{news.title}</h1>
-        <div className="flex items-center text-gray-600 mb-8">
-          <span>{new Date(news.createdAt).toLocaleDateString()}</span>
-          <span className="mx-2">•</span>
-          <span>{news.author}</span>
-          <span className="mx-2">•</span>
-          <span>{news.category}</span>
-        </div>
-        <div className="prose max-w-none">
-          {news.content}
-        </div>
-      </article>
+      </div>
     </div>
   );
 }

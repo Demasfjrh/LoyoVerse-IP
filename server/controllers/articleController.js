@@ -1,51 +1,65 @@
-const { Article } = require('../models')
-const { GoogleGenerativeAI } = require('@google/generative-ai')
-
+const { Article } = require('../models');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 class ArticleController {
-  static async getArticles(req, res) {
+  static async getArticles(req, res, next) {
     try {
-      const articles = await Article.findAll()
-      res.status(200).json(articles)
+      const articles = await Article.findAll();
+      res.status(200).json(articles);
     } catch (error) {
-      res.status(500).json({ message: error.message })
+      next(error);
     }
   }
-  static async getArticlesById(req,res,next){
-    const { id } = req.params
+  static async getArticlesById(req, res, next) {
+    const { id } = req.params;
     try {
-      const article = await Article.findByPk(id)
+      const article = await Article.findByPk(id);
 
-      console.log(article, "<<<<<<<<<<<<<<<<<<<<<<<")
+      // console.log(article, '<<<<<<<<<<<<<<<<<<<<<<<');
 
       if (!article) {
-        throw { name: 'NotFound' }
+        throw { name: 'NotFound' };
       }
 
-      res.status(200).json(article)
+      res.status(200).json(article);
     } catch (error) {
-      next(error)
+      next(error);
     }
   }
-
-  static async recommendationAi(req,res,next){
+  //
+  static async recommendationAi(req, res, next) {
     try {
-        const genAI = new GoogleGenerativeAI('AIzaSyCVklbAy6HrK-0JOztQyeJAY5q86nZQC88');
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const genAI = new GoogleGenerativeAI(
+        'AIzaSyCVklbAy6HrK-0JOztQyeJAY5q86nZQC88'
+      );
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-        const prompt = "Kasih saya 10 rekomendasi berita apa yang paling ngehits ini di kategori politik, olahraga, ekonomi, teknologi, hiburan, setiap kali anda mengirim, jangan kirimkan yang sama dan tolong kelompokan berdasarkan kategori di atas dan berikan dalam bentuk json tanpa tag json dan tanpa enter";
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.candidates[0].content.parts[0].text;
-        console.log(text);
+      const prompt = `Berikan saya 4 berita yang bagus untuk direkomendasikan, sertakan judul, deskripsi, dan URL gambar untuk setiap berita. Response must be a format JSON like this. 
+          [
+            {
+              "title": ....,
+              "image": using picsum only,
+              "description": ....,
+            }
+          ]`
 
-        res.status(200).json({
-            message: 'Our Recommendation article on every category',
-            text,
-        })
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      const text = response.text();
+      let array = text.split("[");
+      let a = array[1].split("]")[0];
+      const news = "[" + a + "]";
+      const formattedRecommendations = JSON.parse(news);
+
+      // console.log(formattedRecommendations,'<<<<<<<');
+      
+      res.status(200).json({
+        message: 'This is our News Recommendation',
+        recommendations: formattedRecommendations,
+      });
     } catch (error) {
-      next(error)
+      next(error);
     }
   }
 }
-module.exports = ArticleController
+module.exports = ArticleController;

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { GoogleLogin } from '@react-oauth/google'
 import Toastify from 'toastify-js'
@@ -7,25 +7,24 @@ import baseUrl from '../api/baseUrl'
 
 export default function LoginPage() {
     const navigate = useNavigate()
-    const [formData, setFormData] = useState({
-        email: '',
-        password: ''
-    })
-
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        })
-    }
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         try {
-            const { data } = await axios.post(`${baseUrl}/login`, formData)
-            localStorage.setItem('access_token', data.access_token)
+            // console.log('Masuk handlesubmit');
+            
+            const { data } = await axios.post(`${baseUrl}/login`, {
+                email,
+                password
+            })
+            // console.log(data,'<><>@@');
+            
+            localStorage.setItem('access_token', data.token)
+    
             Toastify({
-                text: "Login success",
+                text: "success login",
                 duration: 3000,
                 newWindow: true,
                 close: true,
@@ -33,16 +32,13 @@ export default function LoginPage() {
                 position: "right", // `left`, `center` or `right`
                 stopOnFocus: true, // Prevents dismissing of toast on hover
                 style: {
-                    background: "#34D399",
-                    color: "#000000"
+                    background: "linear-gradient(to right, #00b09b, #96c93d)",
                 },
             }).showToast();
             navigate('/')
         } catch (error) {
-            console.log(error);
-            
             Toastify({
-                text: error.response.data.error,
+                text: 'login error',
                 duration: 3000,
                 newWindow: true,
                 close: true,
@@ -50,45 +46,55 @@ export default function LoginPage() {
                 position: "right", // `left`, `center` or `right`
                 stopOnFocus: true, // Prevents dismissing of toast on hover
                 style: {
-                    background: "#F87171",
-                    color: "#000000"
-                }
+                    background:'linear-gradient(90deg, rgba(255,207,0,1) 0%, rgba(255,0,0,1) 68%)',
+                    color: "white",
+                },
             }).showToast();
         }
     }
 
     async function googleLogin(codeResponse) {
         try {
-        //   console.log(codeResponse);
-          const { data } = await axios.post(`${baseUrl}/google-login`,null,
-            {
-              headers: {
-                token: codeResponse.credential,
-              },
-            }
-          );
+            const { data } = await axios.post(`${baseUrl}/google-login`, null, {
+                headers: { token: codeResponse.credential },
+            })
+            localStorage.setItem('access_token', data.access_token)
+            Toastify({
+                text: 'login google success',
+                duration: 3000,
+                newWindow: true,
+                close: true,
+                gravity: "bottom", 
+                position: "right", 
+                stopOnFocus: true, 
+                style: {
+                    background:'linear-gradient(90deg, rgba(0,255,186,1) 0%, rgba(0,80,255,1) 100%);',
+                    color: "white",
+                },
+            }).showToast();
+            navigate('/')
+        } catch (error) {
+            Toastify({
+                text: 'login google error',
+                duration: 3000,
+                newWindow: true,
+                close: true,
+                gravity: "bottom", // `top` or `bottom`
+                position: "right", // `left`, `center` or `right`
+                stopOnFocus: true, // Prevents dismissing of toast on hover
+                style: {
+                    background:'linear-gradient(90deg, rgba(255,207,0,1) 0%, rgba(255,0,0,1) 68%)',
+                    color: "white",
+                },
+            }).showToast();
+        }
+    }
 
-        //   console.log(data,'<<<');
-          
-          localStorage.setItem('access_token', data.access_token);
-          Toastify({
-            text: "Login success",
-            duration: 5000,
-            newWindow: true,
-            close: true,    
-            gravity: "bottom", // `top` or `bottom`
-            position: "right", // `left`, `center` or `right`
-            stopOnFocus: true, // Prevents dismissing of toast on hover
-            style: {
-                background: "#34D399",
-                color: "#000000"
-            },
-        }).showToast();
-        navigate('/')
-    } catch (error) {
-        console.log(error);
+    
+    useEffect(() => {
+        if (localStorage.access_token) {
         Toastify({
-            text: error.response.data.error,
+            text: "You already logged in",
             duration: 3000,
             newWindow: true,
             close: true,
@@ -96,56 +102,49 @@ export default function LoginPage() {
             position: "right", // `left`, `center` or `right`
             stopOnFocus: true, // Prevents dismissing of toast on hover
             style: {
-                background: "#F87171",
-                color: "#000000"
-            }
+            background: "#F87171",
+            color: "#000000",
+            },
         }).showToast();
-    }
-      }
+        navigate("/");
+        }
+    }, [navigate]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#0f172a] py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full backdrop-blur-sm bg-white/80 dark:bg-slate-800/80 rounded-2xl shadow-2xl p-10 space-y-8">
-                <div>
-                    <h2 className="text-center text-3xl font-bold text-slate-800 dark:text-slate-100">
-                        Welcome Back
-                    </h2>
-                    <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
-                        Please sign in to your account
-                    </p>
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-6">
+            <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 space-y-6">
+                <div className="text-center">
+                    <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Welcome Back</h2>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Sign in to continue</p>
                 </div>
-                
-                <form onSubmit={handleSubmit} className="space-y-6">
+
+                <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Email Address
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
                         <input
                             type="email"
                             name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            className="mt-1 block w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="mt-1 w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:outline-none transition duration-200 ease-in-out shadow-sm hover:shadow-md"
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Password
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
                         <input
                             type="password"
                             name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            className="mt-1 block w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="mt-1 w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:outline-none transition duration-200 ease-in-out shadow-sm hover:shadow-md"
                             required
                         />
                     </div>
 
                     <button
                         type="submit"
-                        className="w-full flex justify-center py-3 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg shadow-indigo-500/30 transition-all duration-200 ease-in-out hover:shadow-indigo-500/40"
+                        className="w-full py-3 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-semibold transition duration-200 ease-in-out shadow-md hover:shadow-lg"
                     >
                         Sign In
                     </button>
@@ -153,11 +152,11 @@ export default function LoginPage() {
 
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-slate-200 dark:border-slate-600"></div>
+                        <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
                     </div>
                     <div className="relative flex justify-center text-sm">
-                        <span className="px-4 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-                            Or continue with
+                        <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                            Or sign in with
                         </span>
                     </div>
                 </div>

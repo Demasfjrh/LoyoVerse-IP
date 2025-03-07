@@ -1,4 +1,3 @@
-const e = require('express')
 const { Favorite } = require('../models')
 
 const authorization = async (req, res, next) => {
